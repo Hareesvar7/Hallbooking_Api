@@ -5,7 +5,7 @@ const app = express();
 app.use(bodyParser.json());
 /*
 
-Postman documentation url - https://documenter.getpostman.com/view/27867831/2s93zE1ysM
+
 
 */
 //creating variables for storing data
@@ -16,28 +16,28 @@ let rooms = [{
     pricePerhr:"100"
 }];
 let bookings = [{
-    customer: "Selva",
+    customer: "Hariharan",
     bookingDate: "20230612",
     startTime: "12:00pm",
     endTime: "11:59am",
     bookingID: "B1",
     roomId: "R1",
     status: "booked",
-    booked_On: "3/7/2023"
+    booked_On: "3/11/2023"
 }
 ];
 let customers = [
-    { name: 'Selva',
+    { name: 'Hariharan',
      bookings: [ 
         {
-            customer: 'Selva',
+            customer: 'Hariharan',
             bookingDate: '20230612',
             startTime: '12:00pm',
             endTime: '11:59am',
             bookingID: 'B1',
             roomId: 'R1',
             status: 'booked',
-            booked_On: '3/7/2023'
+            booked_On: '3/11/2023'
           }
       ] }
 ];
