@@ -1,133 +1,154 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const uniqid = require('uniqid');
+const express = require('express');
+const bodyParser = require('body-parser');
 
 const app = express();
-app.use(cors());
 app.use(bodyParser.json());
-const port =3000;
+/*
 
-app.listen(port, () => console.log(`Your app is running with ${port}`));
+Postman documentation url - https://documenter.getpostman.com/view/27867831/2s93zE1ysM
 
-let rooms = [];
-let roomNo = 100;
-let bookings =[];
-let date_regex = /^(0[1-9]|1[0-2])\/(0[1-9]|1\d|2\d|3[01])\/(19|20)\d{2}$/;
-// let time_regex = /^(0[1-9]|1\d|2[0-3])\:(0[1-9]|1\d|2\d|3\d|4\d|5\d)/;
-let time_regex = /^(0[0-9]|1\d|2[0-3])\:(00)/;
+*/
+//creating variables for storing data
+let rooms = [{
+    roomId:"R1",
+    seatsAvailable:"4",
+    amenities:"tv,ac,heater",
+    pricePerhr:"100"
+}];
+let bookings = [{
+    customer: "Selva",
+    bookingDate: "20230612",
+    startTime: "12:00pm",
+    endTime: "11:59am",
+    bookingID: "B1",
+    roomId: "R1",
+    status: "booked",
+    booked_On: "3/7/2023"
+}
+];
+let customers = [
+    { name: 'Selva',
+     bookings: [ 
+        {
+            customer: 'Selva',
+            bookingDate: '20230612',
+            startTime: '12:00pm',
+            endTime: '11:59am',
+            bookingID: 'B1',
+            roomId: 'R1',
+            status: 'booked',
+            booked_On: '3/7/2023'
+          }
+      ] }
+];
 
-app.get("/", function (req, res) {
-        res.json({
-            output: "Homepage"
-        });
 
+
+// view all Rooms and its details
+app.get('/rooms/all', (req, res)=> {
+    res.status(200).json({RoomsList : rooms});
+    console.log(rooms)
+  })
+
+//API endpoint for creating room
+app.post('/rooms/create',(req,res) => {
+    const room = req.body;
+    const idExists = rooms.find((el)=> el.roomId === room.roomId)
+    if(idExists !== undefined){
+        return res.status(400).json({message:"room already exists."});
+    }
+    else{
+    rooms.push(room);
+    res.status(201).json({message:"room created"});
+}
+   
+
+    
+});
+// api endpoint for booking room
+app.post("/booking/create/:id", (req,res)=>{
+    try{
+      const {id} = req.params;
+      let bookRoom = req.body; 
+      let date = new Date();
+      let dateFormat = date.toLocaleDateString();
+      let idExists = rooms.find((el)=> el.roomId === id)
+      if(idExists === undefined){
+          return res.status(400).json({message:"room does not exist.", RoomsList:rooms});
+  
+      }
+//verifying the booked date      
+      let matchID = bookings.filter((b)=> b.roomId===id) 
+      if(matchID.length > 0){
+          let dateCheck = matchID.filter((m)=>{ return m.bookingDate === bookRoom.bookingDate});
+          if(dateCheck.length===0){
+              let newID = "B"+(bookings.length + 1);
+              let newbooking = {...bookRoom, bookingID: newID, roomId:id, status:"booked", booked_On: dateFormat}
+              bookings.push(newbooking);
+              return res.status(201).json({message:"hall booked", Bookings:bookings, added:newbooking});
+          }
+          else{
+              return res.status(400).json({message:"hall already booked for this date, choose another hall", Bookings:bookings});
+          }
+      }
+      else{
+              let newID = "B"+(bookings.length + 1);
+              let newbooking = {...bookRoom, bookingID: newID, roomId:id, status:"booked",booked_On: dateFormat}
+              bookings.push(newbooking);
+              const customerdetails = customers.find(cust => 
+                cust.name === newbooking.customer);
+                if (customerdetails) {
+                    customerdetails.bookings.push(newbooking);
+                } else {
+                    customers.push({ name:newbooking.customer,bookings:[newbooking]});
+                }
+              return res.status(201).json({message:"hall booked", Bookings:bookings, added:newbooking});
+  
+      }
+    }
+    catch(error){
+        res.status(400).json({message:"error booking room", error: error, data:bookings});
+    }
+})
+
+// api endpoint for viewing all the booked room
+app.get('/viewbooking',(req,res) => {
+    const bookedRooms = bookings.map(booking => {
+        const {roomId ,Status,customer,bookingDate,startTime,endTime} = booking;
+        return {roomId ,Status,customer,bookingDate,startTime,endTime} 
+    });
+    res.status(201).json(bookedRooms);
+});
+
+//api to list all the customers with booked data
+app.get('/customers', (req, res) => {
+    const customerBookings = customers.map(customer => {
+      const { name, bookings } = customer;
+      const customerDetails = bookings.map(booking => {
+        const { roomId, bookingDate, startTime, endTime } = booking;
+        return { name, roomId, bookingDate, startTime, endTime };
+      });
+     
+      return customerDetails;
+    })
+   
+    res.json(customerBookings);
   });
 
-  app.get("/getAllRooms", function (req, res) {
-    res.json({
-        output: rooms
-    });
-
-});
-
-app.get("/getAllBookings", function (req, res) {
-    res.json({
-        output: bookings
-    });
-
-});
-
-app.post("/createRoom", function (req, res) {
-    let room = {};
-    room.id = uniqid();
-    room.roomNo = roomNo;
-    room.bookings = [];
-    if(req.body.noSeats){room.noSeats = req.body.noSeats} else{res.status(400).json({ output: 'Please specify No of seats for Room'})};
-    if(req.body.amenities){room.amenities = req.body.amenities} else{res.status(400).json({ output: 'Please specify all Amenities for Room in Array format'})};
-    if(req.body.price){room.price = req.body.price} else{res.status(400).json({ output: 'Please specify price per hour for Room'})};
-    rooms.push(room);
-    roomNo++;
-    res.status(200).json({ output: 'Room Created Successfully'}) 
-});
-
-app.post("/createBooking", function (req, res) {
-    let booking = {};
-    booking.id = uniqid();
-    if(req.body.custName){booking.custName = req.body.custName} else{res.status(400).json({ output: 'Please specify customer Name for booking.'})};
-    if(req.body.date){
-        if (date_regex.test(req.body.date)) {
-            booking.date = req.body.date
-        } else{
-            res.status(400).json({ output: 'Please specify date in MM/DD/YYYY'})
-        }
-    } else{
-        res.status(400).json({ output: 'Please specify date for booking.'})
+// api to list how many times the user booked the room
+  app.get('/customer/:name', (req, res) => {
+    const { name } = req.params;
+    const customer = customers.find(cust => cust.name === name);
+    if (!customer) {
+      res.status(404).json({ error: 'Customer not found' });
+      return;
     }
-
-    if(req.body.startTime){
-        if (time_regex.test(req.body.startTime)) {
-            booking.startTime = req.body.startTime
-        } else{
-            res.status(400).json({ output: 'Please specify time in hh:min(24-hr format) where minutes should be 00 only'})
-        }
-    } else{
-        res.status(400).json({ output: 'Please specify Starting time for booking.'})
-    }
-
-    if(req.body.endTime){
-        if (time_regex.test(req.body.endTime)) {
-            booking.endTime = req.body.endTime
-        } else{
-            res.status(400).json({ output: 'Please specify time in hh:min(24-hr format) where minutes should be 00 only'})
-        }
-    } else{
-        res.status(400).json({ output: 'Please specify Ending time for booking.'})
-    }
-
-    const availableRooms = rooms.filter(room => {
-        if(room.bookings.length == 0){
-            return true;
-        } else{
-            room.bookings.filter(book =>{
-                if((book.date == req.body.date) ){
-                    if((parseInt((book.startTime).substring(0, 1)) > parseInt((req.body.startTime).substring(0, 1)) ) && 
-                    (parseInt((book.startTime).substring(0, 1)) > parseInt((req.body.endTime).substring(0, 1)) ) ){ 
-                        if((parseInt((book.startTime).substring(0, 1)) < parseInt((req.body.startTime).substring(0, 1)) ) && 
-                          (parseInt((book.startTime).substring(0, 1)) < parseInt((req.body.endTime).substring(0, 1)) ) ){ 
-                            return true;
-                        }
-                    }
-                }
-                else{
-                    return true;
-                }
-            })
-
-        }
+    const customerBookings = customer.bookings.map(booking => {
+      const { customer,roomId, startTime, endTime, bookingID, status, bookingDate,booked_On } = booking;
+      return { customer, roomId, startTime, endTime, bookingID, status, bookingDate,booked_On };
     });
-    if(availableRooms.length == 0){res.status(400).json({ output: 'No Available Rooms on Selected Date and Time'})}
-   else{
-    roomRec = availableRooms[0];
-   let count =0;
-   rooms.forEach(element => {
-       if(element.roomNo == roomRec.roomNo){
-        rooms[count].bookings.push({
-            custName: req.body.custName,
-            startTime: req.body.startTime,
-            endTime: req.body.endTime,
-            date: req.body.date
-        })
-       }
-       count++;
-   });
-   let bookingRec = req.body;
-   bookingRec.roomNo = roomRec.roomNo;
-   bookingRec.cost = parseInt(roomRec.price) * (parseInt((bookingRec.endTime).substring(0, 1)) - parseInt((bookingRec.startTime).substring(0, 1)));
+    res.json(customerBookings);
+  });
 
 
-   bookings.push(bookingRec);
-   res.status(200).json({ output: 'Room Booking Successfully'}) 
-}
-});
+app.listen(4000, ()=> console.log("started server hallbooking"));
