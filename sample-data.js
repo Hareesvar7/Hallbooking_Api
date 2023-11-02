@@ -5,7 +5,7 @@ let rooms = [{
     pricePerhr:"100"
 }];
 let bookings = [{
-    customer: "Selva",
+    customer: "Hariharan",
     bookingDate: "20230612",
     startTime: "12:00pm",
     endTime: "11:59am",
@@ -16,10 +16,10 @@ let bookings = [{
 }
 ];
 let customers = [
-    { name: 'Selva',
+    { name: 'Hariharan',
      bookings: [ 
         {
-            customer: 'Selva',
+            customer: 'Hariharan',
             bookingDate: '20230612',
             startTime: '12:00pm',
             endTime: '11:59am',
